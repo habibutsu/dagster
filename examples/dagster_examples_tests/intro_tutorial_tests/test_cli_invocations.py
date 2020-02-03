@@ -78,7 +78,7 @@ cli_args = [
     ('config.py', 'config_pipeline', 'config_env_bad.yaml', None, None, 0, None),
     ('inputs_typed.py', 'inputs_pipeline', 'inputs_env.yaml', None, None, 0, None),
     ('custom_types.py', 'custom_type_pipeline', 'inputs_env.yaml', None, None, 0, None),
-    ('custom_types_2.py', 'custom_type_pipeline', 'custom_types_2.yaml', None, None, 1, Failure,),
+    ('custom_types_2.py', 'custom_type_pipeline', 'custom_types_2.yaml', None, None, 1, Exception,),
     ('custom_types_3.py', 'custom_type_pipeline', 'custom_type_input.yaml', None, None, 0, None),
     ('custom_types_4.py', 'custom_type_pipeline', 'custom_type_input.yaml', None, None, 0, None),
     ('custom_types_5.py', 'custom_type_pipeline', 'custom_type_input.yaml', None, None, 1, None),
