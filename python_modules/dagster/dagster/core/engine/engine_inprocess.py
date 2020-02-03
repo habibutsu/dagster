@@ -371,22 +371,6 @@ def _create_step_input_event(step_context, input_name, type_check, success):
     )
 
 
-def _type_check_from_failure(failure):
-    check.inst_param(failure, 'failure', Exception)
-
-    # TypeScript this ain't. pylint not aware of type discrimination
-    # pylint: disable=no-member
-
-    return (
-        TypeCheck(
-            False, failure.user_exception.description, failure.user_exception.metadata_entries
-        )
-        if isinstance(failure, DagsterTypeCheckError)
-        and isinstance(failure.user_exception, Failure)
-        else TypeCheck(False, str(failure), metadata_entries=[])
-    )
-
-
 def _type_checked_event_sequence_for_input(step_context, input_name, input_value):
     check.inst_param(step_context, 'step_context', SystemStepExecutionContext)
     check.str_param(input_name, 'input_name')
@@ -408,10 +392,7 @@ def _type_checked_event_sequence_for_input(step_context, input_name, input_value
             step_key=step_context.step.key,
         ),
     ):
-        try:
-            type_check = _do_type_check(step_input.runtime_type, input_value)
-        except Exception as exc:  # pylint: disable=broad-except
-            type_check = _type_check_from_failure(exc)
+        type_check = _do_type_check(step_input.runtime_type, input_value)
 
         yield _create_step_input_event(
             step_context, input_name, type_check=type_check, success=type_check.success
@@ -466,10 +447,8 @@ def _type_checked_step_output_event_sequence(step_context, output):
             step_key=step_context.step.key,
         ),
     ):
-        try:
-            type_check = _do_type_check(step_output.runtime_type, output.value)
-        except Exception as exc:  # pylint: disable=broad-except
-            type_check = _type_check_from_failure(exc)
+        type_check = _do_type_check(step_output.runtime_type, output.value)
+
         yield _create_step_output_event(
             step_context, output, type_check=type_check, success=type_check.success
         )

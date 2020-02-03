@@ -3,6 +3,7 @@ import sys
 import pytest
 
 from dagster import (
+    DagsterInvariantViolationError,
     EventMetadataEntry,
     Failure,
     InputDefinition,
@@ -234,8 +235,13 @@ def test_output_types_fail_in_pipeline():
 # TODO add more step output use cases
 
 
+class AlwaysFailsException(Exception):
+    # Made to make exception explicit so that we aren't accidentally masking other Exceptions
+    pass
+
+
 def _always_fails(_value):
-    raise Exception('kdjfkjd')
+    raise AlwaysFailsException('kdjfkjd')
 
 
 ThrowsExceptionType = DagsterType(name='ThrowsExceptionType', type_check_fn=_always_fails,)
@@ -261,33 +267,14 @@ def test_input_type_returns_wrong_thing():
     def pipe():
         return take_bad_thing(return_one())
 
-    # when https://github.com/dagster-io/dagster/issues/2018 is resolve
-    # the two error messages in the test should be the same
-    with pytest.raises(Failure):
+    with pytest.raises(DagsterInvariantViolationError):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
     assert not pipeline_result.success
 
     solid_result = pipeline_result.result_for_solid('take_bad_thing')
-    type_check_data = _type_check_data_for_input(solid_result, 'value')
-    assert not type_check_data.success
-    if sys.version_info.major == 3:
-        assert type_check_data.description == (
-            "You have returned 'kdjfkjd' of type <class 'str'> from the "
-            "type check function of type \"BadType\". Return value must be instance of "
-            "TypeCheck or a bool."
-        )
-    else:
-        assert type_check_data.description == (
-            "You have returned 'kdjfkjd' of type <type 'str'> from the "
-            "type check function of type \"BadType\". Return value must be instance of "
-            "TypeCheck or a bool."
-        )
-    assert not type_check_data.metadata_entries
-
-    step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert solid_result.failure_data.error.cls_name == 'DagsterInvariantViolationError'
 
 
 def test_output_type_returns_wrong_thing():
@@ -299,34 +286,14 @@ def test_output_type_returns_wrong_thing():
     def pipe():
         return return_one_bad_thing()
 
-    # when https://github.com/dagster-io/dagster/issues/2018 is resolve
-    # the two error messages in the test should be the same
-    with pytest.raises(Failure):
+    with pytest.raises(DagsterInvariantViolationError):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
     assert not pipeline_result.success
 
     solid_result = pipeline_result.result_for_solid('return_one_bad_thing')
-    output_event = solid_result.get_output_event_for_compute()
-    type_check_data = output_event.event_specific_data.type_check_data
-    assert not type_check_data.success
-
-    if sys.version_info.major == 3:
-        assert type_check_data.description == (
-            "You have returned 'kdjfkjd' of type <class 'str'> from the "
-            "type check function of type \"BadType\". Return value must be instance of "
-            "TypeCheck or a bool."
-        )
-    else:
-        assert type_check_data.description == (
-            "You have returned 'kdjfkjd' of type <type 'str'> from the "
-            "type check function of type \"BadType\". Return value must be instance of "
-            "TypeCheck or a bool."
-        )
-
-    step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert solid_result.failure_data.error.cls_name == 'DagsterInvariantViolationError'
 
 
 def test_input_type_throw_arbitrary_exception():
@@ -342,17 +309,13 @@ def test_input_type_throw_arbitrary_exception():
     def pipe():
         return take_throws(return_one())
 
-    with pytest.raises(Failure):
+    with pytest.raises(AlwaysFailsException):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
     assert not pipeline_result.success
     solid_result = pipeline_result.result_for_solid('take_throws')
-    type_check_data = _type_check_data_for_input(solid_result, 'value')
-    assert not type_check_data.success
-
-    step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert solid_result.failure_data.error.cls_name == 'AlwaysFailsException'
 
 
 def test_output_type_throw_arbitrary_exception():
@@ -364,21 +327,14 @@ def test_output_type_throw_arbitrary_exception():
     def pipe():
         return return_one_throws()
 
-    with pytest.raises(Failure):
+    with pytest.raises(AlwaysFailsException):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
     assert not pipeline_result.success
     solid_result = pipeline_result.result_for_solid('return_one_throws')
-
-    output_event = solid_result.get_output_event_for_compute()
-    type_check_data = output_event.event_specific_data.type_check_data
-    assert not type_check_data.success
-
-    assert 'kdjfkjd' == type_check_data.description
-
-    step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert solid_result.failure_data.error.cls_name == 'AlwaysFailsException'
+    assert 'kdjfkjd' in solid_result.failure_data.error.message
 
 
 def define_custom_dict(name, permitted_key_names):
