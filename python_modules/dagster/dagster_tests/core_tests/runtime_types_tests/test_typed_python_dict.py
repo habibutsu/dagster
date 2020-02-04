@@ -1,6 +1,13 @@
 import pytest
 
-from dagster import Dict, Failure, InputDefinition, OutputDefinition, execute_solid, lambda_solid
+from dagster import (
+    DagsterTypeCheckReturnedFalse,
+    Dict,
+    InputDefinition,
+    OutputDefinition,
+    execute_solid,
+    lambda_solid,
+)
 
 
 def test_typed_python_dict():
@@ -29,7 +36,7 @@ def test_basic_solid_dict_int_int_output_faile():
     def emit_dict_int_int():
         return {1: '1'}
 
-    with pytest.raises(Failure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_dict_int_int)
 
 
@@ -46,5 +53,5 @@ def test_basic_solid_dict_int_int_input_fails():
     def emit_dict_int_int(ddict):
         return ddict
 
-    with pytest.raises(Failure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_dict_int_int, input_values={'ddict': {'1': 2}})

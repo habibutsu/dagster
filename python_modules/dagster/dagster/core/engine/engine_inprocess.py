@@ -1,7 +1,7 @@
 import os
 import sys
 
-from dagster import TypeCheckFailure, check
+from dagster import EventMetadataEntry, check
 from dagster.core.definitions import ExpectationResult, Materialization, Output, TypeCheck
 from dagster.core.errors import (
     DagsterError,
@@ -341,6 +341,18 @@ def _step_output_error_checked_user_event_sequence(step_context, user_event_sequ
                 )
 
 
+class DagsterTypeCheckReturnedFalse(DagsterError):
+    '''Used explicitly as a testing utility in situations where raise_on_error is True and a user
+    defined type check returns False'''
+
+    def __init__(self, description=None, metadata_entries=None):
+        super(DagsterTypeCheckReturnedFalse, self).__init__(description)
+        self.description = check.opt_str_param(description, 'description')
+        self.metadata_entries = check.opt_list_param(
+            metadata_entries, 'metadata_entries', of_type=EventMetadataEntry
+        )
+
+
 def _do_type_check(runtime_type, value):
     type_check = runtime_type.type_check(value)
     if not isinstance(type_check, TypeCheck):
@@ -399,13 +411,11 @@ def _type_checked_event_sequence_for_input(step_context, input_name, input_value
         )
 
         if not type_check.success:
-            raise TypeCheckFailure(
-                'Type check failed for step input {input_name} of type {runtime_type} on input value '
-                'of type {input_type}'.format(
-                    input_name=input_name,
-                    runtime_type=step_input.runtime_type.name,
-                    input_type=type(input_value),
-                )
+            raise DagsterTypeCheckReturnedFalse(
+                description='Type check failed for step input {input_name} of type {runtime_type}.'.format(
+                    input_name=input_name, runtime_type=step_input.runtime_type.name,
+                ),
+                metadata_entries=type_check.metadata_entries,
             )
 
 
@@ -454,13 +464,11 @@ def _type_checked_step_output_event_sequence(step_context, output):
         )
 
         if not type_check.success:
-            raise TypeCheckFailure(
-                'Type check failed for step output {output_name} of type {runtime_type} on output '
-                'value of type {output_type}'.format(
-                    output_name=output.output_name,
-                    runtime_type=step_output.runtime_type.name,
-                    output_type=type(output.value),
-                )
+            raise DagsterTypeCheckReturnedFalse(
+                description='Type check failed for step output {output_name} of type {runtime_type}.'.format(
+                    output_name=output.output_name, runtime_type=step_output.runtime_type.name,
+                ),
+                metadata_entries=type_check.metadata_entries,
             )
 
 

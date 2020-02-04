@@ -30,14 +30,12 @@ from dagster.core.definitions import (
     ResourceDefinition,
     ScheduleDefinition,
     ScheduleExecutionContext,
-    SolidComputationFailure,
     SolidDefinition,
     SolidInvocation,
     SystemStorageData,
     SystemStorageDefinition,
     TextMetadataEntryData,
     TypeCheck,
-    TypeCheckFailure,
     UrlMetadataEntryData,
     composite_solid,
     daily_schedule,
@@ -57,6 +55,7 @@ from dagster.core.definitions import (
     system_storage,
 )
 from dagster.core.engine import Engine
+from dagster.core.engine.engine_inprocess import DagsterTypeCheckReturnedFalse
 from dagster.core.engine.init import InitExecutorContext
 from dagster.core.errors import (
     DagsterConfigMappingFunctionError,
@@ -132,8 +131,6 @@ __all__ = [
     'JsonMetadataEntryData',
     'ExpectationResult',
     'Failure',
-    'TypeCheckFailure',
-    'SolidComputationFailure',
     'Field',
     'InputDefinition',
     'InputMapping',
@@ -182,6 +179,7 @@ __all__ = [
     'DagsterInvariantViolationError',
     'DagsterResourceFunctionError',
     'DagsterTypeCheckError',
+    'DagsterTypeCheckReturnedFalse',
     'DagsterUnknownResourceError',
     'DagsterUserCodeExecutionError',
     'DagsterStepOutputNotFoundError',

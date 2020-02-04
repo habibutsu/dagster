@@ -3,7 +3,7 @@ import signal
 from subprocess import PIPE, STDOUT, Popen
 from tempfile import NamedTemporaryFile
 
-from dagster import Enum, EnumValue, Field, Permissive, SolidComputationFailure, check, seven, solid
+from dagster import Enum, EnumValue, Failure, Field, Permissive, check, seven, solid
 
 
 def bash_command_solid(bash_command, name=None, output_encoding=None):
@@ -108,9 +108,7 @@ def bash_command_solid(bash_command, name=None, output_encoding=None):
             )
 
             if sub_process.returncode:
-                raise SolidComputationFailure(
-                    description='[bash][{name}] Bash command failed'.format(name=name)
-                )
+                raise Failure(description='[bash][{name}] Bash command failed'.format(name=name))
 
         return line
 

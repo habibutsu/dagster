@@ -12,8 +12,8 @@ from dagster_examples.toys.sleepy import sleepy_pipeline
 from dagster import (
     DagsterInvariantViolationError,
     DagsterResourceFunctionError,
+    DagsterTypeCheckReturnedFalse,
     RunConfig,
-    TypeCheckFailure,
     execute_pipeline,
 )
 
@@ -111,7 +111,7 @@ def test_error_monster_success_error_on_resource():
 
 
 def test_error_monster_type_error():
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_pipeline(
             error_monster,
             environment_dict={

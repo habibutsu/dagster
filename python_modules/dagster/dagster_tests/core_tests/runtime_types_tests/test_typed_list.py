@@ -2,7 +2,13 @@ import typing
 
 import pytest
 
-from dagster import InputDefinition, OutputDefinition, TypeCheckFailure, execute_solid, lambda_solid
+from dagster import (
+    DagsterTypeCheckReturnedFalse,
+    InputDefinition,
+    OutputDefinition,
+    execute_solid,
+    lambda_solid,
+)
 
 
 def test_basic_list_output_pass():
@@ -18,7 +24,7 @@ def test_basic_list_output_fail():
     def emit_list():
         return 'foo'
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_list).output_value()
 
 
@@ -35,7 +41,7 @@ def test_basic_list_input_fail():
     def ingest_list(alist):
         return alist
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(ingest_list, input_values={'alist': 'foobar'})
 
 
@@ -52,7 +58,7 @@ def test_typing_list_output_fail():
     def emit_list():
         return 'foo'
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_list).output_value()
 
 
@@ -69,7 +75,7 @@ def test_typing_list_input_fail():
     def ingest_list(alist):
         return alist
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(ingest_list, input_values={'alist': 'foobar'})
 
 
@@ -86,7 +92,7 @@ def test_typing_list_of_int_output_fail():
     def emit_list():
         return ['foo']
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_list).output_value()
 
 
@@ -103,7 +109,7 @@ def test_typing_list_of_int_input_fail():
     def ingest_list(alist):
         return alist
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(ingest_list, input_values={'alist': ['foobar']})
 
 
@@ -123,7 +129,7 @@ def test_typing_list_of_list_of_int_output_fail():
     def emit_list():
         return [[1, 2], [3, '4']]
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(emit_list).output_value()
 
 
@@ -143,5 +149,5 @@ def test_typing_list_of_list_of_int_input_fail():
     def ingest_list(alist):
         return alist
 
-    with pytest.raises(TypeCheckFailure):
+    with pytest.raises(DagsterTypeCheckReturnedFalse):
         execute_solid(ingest_list, input_values={'alist': [[1, 2], [3, '4']]})

@@ -2,6 +2,7 @@ import pytest
 
 from dagster import (
     DagsterInvariantViolationError,
+    DagsterTypeCheckReturnedFalse,
     DependencyDefinition,
     EventMetadataEntry,
     InputDefinition,
@@ -9,7 +10,6 @@ from dagster import (
     OutputDefinition,
     PipelineDefinition,
     SolidDefinition,
-    TypeCheckFailure,
     check,
     execute_pipeline,
     execute_solid,
@@ -252,7 +252,7 @@ def test_user_error_propogation():
 def test_explicit_failure():
     @lambda_solid
     def throws_failure():
-        raise TypeCheckFailure(
+        raise DagsterTypeCheckReturnedFalse(
             description='Always fails.',
             metadata_entries=[EventMetadataEntry.text('why', label='always_fails')],
         )
@@ -261,7 +261,7 @@ def test_explicit_failure():
     def pipe():
         throws_failure()
 
-    with pytest.raises(TypeCheckFailure) as exc_info:
+    with pytest.raises(DagsterTypeCheckReturnedFalse) as exc_info:
         execute_pipeline(pipe)
 
     assert exc_info.value.description == 'Always fails.'

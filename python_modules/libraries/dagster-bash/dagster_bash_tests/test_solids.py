@@ -3,7 +3,7 @@ import os
 import pytest
 from dagster_bash import bash_command_solid, bash_script_solid
 
-from dagster import SolidComputationFailure, composite_solid, execute_solid
+from dagster import Failure, composite_solid, execute_solid
 
 
 def test_bash_command_solid():
@@ -17,7 +17,7 @@ def test_bash_command_solid():
 
 
 def test_bash_command_retcode():
-    with pytest.raises(SolidComputationFailure) as exc_info:
+    with pytest.raises(Failure) as exc_info:
         execute_solid(bash_command_solid('exit 1'))
     assert '[bash][bash_solid] Bash command failed' in str(exc_info.value)
 
