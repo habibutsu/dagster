@@ -33,8 +33,10 @@ from .events import (
     Materialization,
     Output,
     PathMetadataEntryData,
+    SolidComputationFailure,
     TextMetadataEntryData,
     TypeCheck,
+    TypeCheckFailure,
     UrlMetadataEntryData,
 )
 from .executor import (

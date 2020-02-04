@@ -326,6 +326,14 @@ class Failure(Exception):
         )
 
 
+class TypeCheckFailure(Failure):
+    '''Purely semantics for now but we could add more structured metadata entries here.'''
+
+
+class SolidComputationFailure(Failure):
+    '''Purely semantics for now but we could add more structured metadata entries here.'''
+
+
 class ObjectStoreOperationType(Enum):
     SET_OBJECT = 'SET_OBJECT'
     GET_OBJECT = 'GET_OBJECT'

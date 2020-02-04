@@ -3,13 +3,13 @@ import pytest
 from dagster import (
     DagsterInvariantViolationError,
     EventMetadataEntry,
-    Failure,
     InputDefinition,
     Int,
     List,
     Optional,
     OutputDefinition,
     TypeCheck,
+    TypeCheckFailure,
     execute_pipeline,
     lambda_solid,
     pipeline,
@@ -182,7 +182,7 @@ def test_input_types_fail_in_pipeline():
     def pipe():
         return take_string(return_one())
 
-    with pytest.raises(Failure):
+    with pytest.raises(TypeCheckFailure):
         execute_pipeline(pipe)
 
     # now check events in no throw case
@@ -198,7 +198,7 @@ def test_input_types_fail_in_pipeline():
     assert type_check_data.description == 'Value "1" of python type "int" must be a string.'
 
     step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert step_failure_event.event_specific_data.error.cls_name == 'TypeCheckFailure'
 
 
 def test_output_types_fail_in_pipeline():
@@ -210,7 +210,7 @@ def test_output_types_fail_in_pipeline():
     def pipe():
         return return_int_fails()
 
-    with pytest.raises(Failure):
+    with pytest.raises(TypeCheckFailure):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
@@ -227,7 +227,7 @@ def test_output_types_fail_in_pipeline():
     assert type_check_data.description == 'Value "1" of python type "int" must be a string.'
 
     step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'Failure'
+    assert step_failure_event.event_specific_data.error.cls_name == 'TypeCheckFailure'
 
 
 # TODO add more step output use cases

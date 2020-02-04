@@ -1,8 +1,8 @@
 import os
 import sys
 
-from dagster import check
-from dagster.core.definitions import ExpectationResult, Failure, Materialization, Output, TypeCheck
+from dagster import TypeCheckFailure, check
+from dagster.core.definitions import ExpectationResult, Materialization, Output, TypeCheck
 from dagster.core.errors import (
     DagsterError,
     DagsterExecutionStepExecutionError,
@@ -399,7 +399,7 @@ def _type_checked_event_sequence_for_input(step_context, input_name, input_value
         )
 
         if not type_check.success:
-            raise Failure(
+            raise TypeCheckFailure(
                 'Type check failed for step input {input_name} of type {runtime_type} on input value '
                 'of type {input_type}'.format(
                     input_name=input_name,
@@ -454,7 +454,7 @@ def _type_checked_step_output_event_sequence(step_context, output):
         )
 
         if not type_check.success:
-            raise Failure(
+            raise TypeCheckFailure(
                 'Type check failed for step output {output_name} of type {runtime_type} on output '
                 'value of type {output_type}'.format(
                     output_name=output.output_name,
