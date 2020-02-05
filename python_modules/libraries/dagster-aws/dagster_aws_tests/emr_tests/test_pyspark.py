@@ -130,7 +130,10 @@ def test_bad_requirements_txt():
     SparkSession.builder.getOrCreate().stop()
 
 
-@pytest.mark.skip
+@pytest.mark.skipif(
+    'AWS_EMR_TEST_DO_IT_LIVE' not in os.environ,
+    reason='This test is slow and requires a live EMR cluster; run only upon explicit request',
+)
 def test_do_it_live_emr():
     result = execute_pipeline(
         example_pipe,
