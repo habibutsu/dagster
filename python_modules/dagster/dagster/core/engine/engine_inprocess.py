@@ -356,9 +356,7 @@ class DagsterTypeCheckDidNotPass(DagsterError):
         self.metadata_entries = check.opt_list_param(
             metadata_entries, 'metadata_entries', of_type=EventMetadataEntry
         )
-        self.dagster_type = check.opt_inst_param(
-            dagster_type, 'dagster_type', DagsterType
-        )
+        self.dagster_type = check.opt_inst_param(dagster_type, 'dagster_type', DagsterType)
 
 
 def _do_type_check(runtime_type, value):
