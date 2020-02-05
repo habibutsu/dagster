@@ -1,7 +1,7 @@
 .. _deployment-aws:
 
-AWS Deployment
---------------
+Deploying to AWS
+----------------
 
 .. rubric:: Quick Start
 
@@ -27,8 +27,7 @@ use this configuration to connect to your running EC2 instance.
 
 This script will optionally launch an RDS instance for you; if you choose to launch an RDS
 PostgreSQL instance, the remote EC2 instance will automatically be configured to talk to RDS via a
-``dagster.yaml`` file in the remote ``$DAGSTER_HOME``. See the docs on the
-:ref:`Dagster Instance <deployment-reference>` for more information about this configuration.
+``dagster.yaml`` file in the remote ``$DAGSTER_HOME``.
 
 Once the EC2 instance is launched and ready, you can synchronize your Dagster code to it using:
 

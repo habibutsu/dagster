@@ -1,7 +1,7 @@
 .. _local-dagit:
 
-Local or Standalone Dagit
--------------------------
+Running Dagit as a service
+--------------------------
 
 The simplest way to deploy Dagster / Dagit is in standalone mode. You can deploy Dagit as a service
 in your environment; some options for configuring this are described below.
