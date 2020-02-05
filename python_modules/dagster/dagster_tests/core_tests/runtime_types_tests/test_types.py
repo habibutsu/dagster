@@ -414,7 +414,7 @@ def test_return_bool_type():
         ),
     ],
 )
-def test_raise_on_error_true_type_check_returns_false(falsy_type_fn):
+def test_type_check_returns_false(falsy_type_fn):
 
     FalsyType = DagsterType(name='FalsyType', type_check_fn=falsy_type_fn)
 
@@ -433,9 +433,11 @@ def test_raise_on_error_true_type_check_returns_false(falsy_type_fn):
         assert e.value.metadata_entries[0].entry_data.text == 'foo'
         assert e.value.metadata_entries[0].description == 'baz'
 
+    assert not execute_pipeline(foo_pipeline, raise_on_error=False).success
+
 
 @pytest.mark.parametrize('exception_to_throw', [TypeError, AlwaysFailsException, Failure])
-def test_raise_on_error_true_type_check_raises_exception(exception_to_throw):
+def test_type_check_raises_exception(exception_to_throw):
     def raise_exception_inner(_):
         raise exception_to_throw('')
 
@@ -452,6 +454,8 @@ def test_raise_on_error_true_type_check_raises_exception(exception_to_throw):
     with pytest.raises(exception_to_throw):
         execute_pipeline(foo_pipeline)
 
+    assert not execute_pipeline(foo_pipeline, raise_on_error=False).success
+
 
 @pytest.mark.parametrize('truthy_type_fn', [lambda _: True, lambda _: TypeCheck(success=True)])
 def test_raise_on_error_true_type_check_returns_true(truthy_type_fn):
@@ -466,3 +470,4 @@ def test_raise_on_error_true_type_check_returns_true(truthy_type_fn):
         foo_solid()
 
     assert execute_pipeline(foo_pipeline).success
+    assert execute_pipeline(foo_pipeline, raise_on_error=False).success
