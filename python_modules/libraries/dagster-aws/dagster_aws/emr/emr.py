@@ -39,6 +39,10 @@ _FALLBACK_SERVICE_ROLE = 'EMR_DefaultRole'
 _FALLBACK_INSTANCE_PROFILE = 'EMR_EC2_DefaultRole'
 
 
+class EmrError(Exception):
+    pass
+
+
 class EmrJobRunner:
     def __init__(
         self, region, check_cluster_every=30, aws_access_key_id=None, aws_secret_access_key=None,
@@ -63,9 +67,41 @@ class EmrJobRunner:
         )
         return _wrap_aws_client(raw_emr_client, min_backoff=self.check_cluster_every)
 
+    def cluster_id_from_name(self, cluster_name):
+        '''Get a cluster ID in the format j-123ABC123ABC1 given a cluster name.
+
+        Args:
+            cluster_name (str): The name of the cluster for which to find an ID
+
+        Returns:
+            str: The ID of the cluster
+
+        Raises:
+            EmrError: No cluster with the specified name exists
+        '''
+        response = self.make_emr_client().list_clusters()
+        if response['Clusters']:
+            for cluster in response['Clusters']:
+                if cluster['Name'] == cluster_name:
+                    return cluster['Id']
+
+        raise EmrError(
+            'cluster {cluster_name} not found in region {region}'.format(
+                cluster_name=cluster_name, region=self.region
+            )
+        )
+
+    @staticmethod
+    def construct_step_dict_for_command(step_name, command, action_on_failure='CONTINUE'):
+        return {
+            'Name': step_name,
+            'ActionOnFailure': action_on_failure,
+            'HadoopJarStep': {'Jar': 'command-runner.jar', 'Args': command},
+        }
+
     def add_tags(self, context, tags, cluster_id):
         '''Add tags in the dict *tags* to cluster *cluster_id*. Do nothing
-        if *tags* is empty or ``None``'''
+        if *tags* is empty or ``None``.'''
         check.opt_dict_param(tags, 'tags')
         check.str_param(cluster_id, 'cluster_id')
 
@@ -213,7 +249,7 @@ class EmrJobRunner:
             if step_state == EmrStepState.Failed:
                 context.log.info('Step %s failed' % step_id)
 
-            raise Exception('step failed')
+            raise EmrError('step failed')
 
     def _check_for_missing_default_iam_roles(self, context, cluster):
         '''If cluster couldn't start due to missing IAM roles, tell user what to do.'''
