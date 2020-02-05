@@ -31,6 +31,7 @@ from dagster.core.execution.plan.objects import (
 )
 from dagster.core.execution.plan.plan import ExecutionPlan
 from dagster.core.storage.object_store import ObjectStoreOperation
+from dagster.core.types.dagster_type import DagsterType
 from dagster.utils.error import serializable_error_info_from_exc_info
 from dagster.utils.timing import format_duration, time_execution_scope
 
@@ -342,14 +343,21 @@ def _step_output_error_checked_user_event_sequence(step_context, user_event_sequ
 
 
 class DagsterTypeCheckDidNotPass(DagsterError):
-    '''Used explicitly as a testing utility in situations where raise_on_error is True and a user
-    defined type check returns False'''
+    """
+    Raised when:
 
-    def __init__(self, description=None, metadata_entries=None):
+    1. raise_on_error is True in calls to execute_pipeline, execute_solid and similar.
+    2. When a DagsterType's type check fails by returning False or TypeCheck with success=False.
+    """
+
+    def __init__(self, description=None, metadata_entries=None, dagster_type=None):
         super(DagsterTypeCheckDidNotPass, self).__init__(description)
         self.description = check.opt_str_param(description, 'description')
         self.metadata_entries = check.opt_list_param(
             metadata_entries, 'metadata_entries', of_type=EventMetadataEntry
+        )
+        self.dagster_type = check.opt_inst_param(
+            dagster_type, 'dagster_type', DagsterType
         )
 
 
@@ -416,6 +424,7 @@ def _type_checked_event_sequence_for_input(step_context, input_name, input_value
                     input_name=input_name, runtime_type=step_input.runtime_type.name,
                 ),
                 metadata_entries=type_check.metadata_entries,
+                dagster_type=step_input.runtime_type,
             )
 
 
@@ -469,6 +478,7 @@ def _type_checked_step_output_event_sequence(step_context, output):
                     output_name=output.output_name, runtime_type=step_output.runtime_type.name,
                 ),
                 metadata_entries=type_check.metadata_entries,
+                dagster_type=step_output.runtime_type,
             )
 
 

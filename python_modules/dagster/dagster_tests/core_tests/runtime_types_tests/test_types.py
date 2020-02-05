@@ -463,6 +463,7 @@ def test_raise_on_error_true_type_check_returns_unsuccessful_type_check():
     assert e.value.metadata_entries[0].label == 'bar'
     assert e.value.metadata_entries[0].entry_data.text == 'foo'
     assert e.value.metadata_entries[0].description == 'baz'
+    assert isinstance(e.value.dagster_type, DagsterType)
 
     pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
     assert not pipeline_result.success
