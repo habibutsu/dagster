@@ -3,6 +3,7 @@ import re
 import pytest
 
 from dagster import (
+    DagsterEventType,
     DagsterInvariantViolationError,
     DagsterTypeCheckDidNotPass,
     EventMetadataEntry,
@@ -415,18 +416,39 @@ def test_return_bool_type():
     assert execute_pipeline(bool_type_pipeline).success
 
 
-@pytest.mark.parametrize(
-    'falsy_type_fn',
-    [
-        lambda _: False,
-        lambda _: TypeCheck(
+def test_raise_on_error_type_check_returns_false():
+    FalsyType = DagsterType(name='FalsyType', type_check_fn=lambda _: False)
+
+    @solid(output_defs=[OutputDefinition(FalsyType)])
+    def foo_solid(_):
+        return 1
+
+    @pipeline
+    def foo_pipeline():
+        foo_solid()
+
+    with pytest.raises(DagsterTypeCheckDidNotPass):
+        execute_pipeline(foo_pipeline)
+
+    pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
+    assert not pipeline_result.success
+    assert [event.event_type_value for event in pipeline_result.step_event_list] == [
+        DagsterEventType.STEP_START.value,
+        DagsterEventType.STEP_OUTPUT.value,
+        DagsterEventType.STEP_FAILURE.value,
+    ]
+    for event in pipeline_result.step_event_list:
+        if event.event_type_value == DagsterEventType.STEP_FAILURE.value:
+            assert event.event_specific_data.error.cls_name == 'DagsterTypeCheckDidNotPass'
+
+
+def test_raise_on_error_true_type_check_returns_unsuccessful_type_check():
+    FalsyType = DagsterType(
+        name='FalsyType',
+        type_check_fn=lambda _: TypeCheck(
             success=False, metadata_entries=[EventMetadataEntry.text('foo', 'bar', 'baz')]
         ),
-    ],
-)
-def test_type_check_returns_false(falsy_type_fn):
-
-    FalsyType = DagsterType(name='FalsyType', type_check_fn=falsy_type_fn)
+    )
 
     @solid(output_defs=[OutputDefinition(FalsyType)])
     def foo_solid(_):
@@ -438,18 +460,25 @@ def test_type_check_returns_false(falsy_type_fn):
 
     with pytest.raises(DagsterTypeCheckDidNotPass) as e:
         execute_pipeline(foo_pipeline)
-    if e.value.metadata_entries:
-        assert e.value.metadata_entries[0].label == 'bar'
-        assert e.value.metadata_entries[0].entry_data.text == 'foo'
-        assert e.value.metadata_entries[0].description == 'baz'
+    assert e.value.metadata_entries[0].label == 'bar'
+    assert e.value.metadata_entries[0].entry_data.text == 'foo'
+    assert e.value.metadata_entries[0].description == 'baz'
 
-    assert not execute_pipeline(foo_pipeline, raise_on_error=False).success
+    pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
+    assert not pipeline_result.success
+    assert [event.event_type_value for event in pipeline_result.step_event_list] == [
+        DagsterEventType.STEP_START.value,
+        DagsterEventType.STEP_OUTPUT.value,
+        DagsterEventType.STEP_FAILURE.value,
+    ]
+    for event in pipeline_result.step_event_list:
+        if event.event_type_value == DagsterEventType.STEP_FAILURE.value:
+            assert event.event_specific_data.error.cls_name == 'DagsterTypeCheckDidNotPass'
 
 
-@pytest.mark.parametrize('exception_to_throw', [TypeError, AlwaysFailsException, Failure])
-def test_type_check_raises_exception(exception_to_throw):
+def test_raise_on_error_true_type_check_raises_exception():
     def raise_exception_inner(_):
-        raise exception_to_throw('')
+        raise Failure('I am dissapoint')
 
     ThrowExceptionType = DagsterType(name='ThrowExceptionType', type_check_fn=raise_exception_inner)
 
@@ -461,15 +490,22 @@ def test_type_check_raises_exception(exception_to_throw):
     def foo_pipeline():
         foo_solid()
 
-    with pytest.raises(exception_to_throw):
+    with pytest.raises(Failure, match=re.escape('I am dissapoint')):
         execute_pipeline(foo_pipeline)
 
-    assert not execute_pipeline(foo_pipeline, raise_on_error=False).success
+    pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
+    assert not pipeline_result.success
+    assert [event.event_type_value for event in pipeline_result.step_event_list] == [
+        DagsterEventType.STEP_START.value,
+        DagsterEventType.STEP_FAILURE.value,
+    ]
+    for event in pipeline_result.step_event_list:
+        if event.event_type_value == DagsterEventType.STEP_FAILURE.value:
+            assert event.event_specific_data.error.cls_name == 'Failure'
 
 
-@pytest.mark.parametrize('truthy_type_fn', [lambda _: True, lambda _: TypeCheck(success=True)])
-def test_raise_on_error_true_type_check_returns_true(truthy_type_fn):
-    TruthyExceptionType = DagsterType(name='TruthyExceptionType', type_check_fn=truthy_type_fn)
+def test_raise_on_error_true_type_check_returns_true():
+    TruthyExceptionType = DagsterType(name='TruthyExceptionType', type_check_fn=lambda _: True)
 
     @solid(output_defs=[OutputDefinition(TruthyExceptionType)])
     def foo_solid(_):
@@ -480,4 +516,50 @@ def test_raise_on_error_true_type_check_returns_true(truthy_type_fn):
         foo_solid()
 
     assert execute_pipeline(foo_pipeline).success
-    assert execute_pipeline(foo_pipeline, raise_on_error=False).success
+
+    pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
+    assert pipeline_result.success
+    assert [event.event_type_value for event in pipeline_result.step_event_list] == [
+        DagsterEventType.STEP_START.value,
+        DagsterEventType.STEP_OUTPUT.value,
+        DagsterEventType.STEP_SUCCESS.value,
+    ]
+
+
+def test_raise_on_error_true_type_check_returns_successful_type_check():
+    TruthyExceptionType = DagsterType(
+        name='TruthyExceptionType',
+        type_check_fn=lambda _: TypeCheck(
+            success=True, metadata_entries=[EventMetadataEntry.text('foo', 'bar', 'baz')]
+        ),
+    )
+
+    @solid(output_defs=[OutputDefinition(TruthyExceptionType)])
+    def foo_solid(_):
+        return 1
+
+    @pipeline
+    def foo_pipeline():
+        foo_solid()
+
+    pipeline_result = execute_pipeline(foo_pipeline)
+    assert pipeline_result.success
+    for event in pipeline_result.step_event_list:
+        if event.event_type_value == DagsterEventType.STEP_OUTPUT.value:
+            assert event.event_specific_data.type_check_data
+            assert event.event_specific_data.type_check_data.metadata_entries[0].label == 'bar'
+            assert (
+                event.event_specific_data.type_check_data.metadata_entries[0].entry_data.text
+                == 'foo'
+            )
+            assert (
+                event.event_specific_data.type_check_data.metadata_entries[0].description == 'baz'
+            )
+
+    pipeline_result = execute_pipeline(foo_pipeline, raise_on_error=False)
+    assert pipeline_result.success
+    assert [event.event_type_value for event in pipeline_result.step_event_list] == [
+        DagsterEventType.STEP_START.value,
+        DagsterEventType.STEP_OUTPUT.value,
+        DagsterEventType.STEP_SUCCESS.value,
+    ]
