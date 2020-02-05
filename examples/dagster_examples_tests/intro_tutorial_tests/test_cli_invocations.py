@@ -6,7 +6,7 @@ import pytest
 from click.testing import CliRunner
 from dagit.app import create_app
 
-from dagster import DagsterTypeCheckReturnedFalse
+from dagster import DagsterTypeCheckDidNotPass
 from dagster.cli.load_handle import handle_for_repo_cli_args
 from dagster.cli.pipeline import pipeline_execute_command
 from dagster.core.instance import DagsterInstance
@@ -80,7 +80,7 @@ cli_args = [
         None,
         None,
         1,
-        DagsterTypeCheckReturnedFalse,
+        DagsterTypeCheckDidNotPass,
     ),
     ('config.py', 'config_pipeline', 'inputs_env.yaml', None, None, 0, None),
     ('config.py', 'config_pipeline', 'config_env_bad.yaml', None, None, 0, None),

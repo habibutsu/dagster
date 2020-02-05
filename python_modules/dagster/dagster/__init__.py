@@ -55,7 +55,7 @@ from dagster.core.definitions import (
     system_storage,
 )
 from dagster.core.engine import Engine
-from dagster.core.engine.engine_inprocess import DagsterTypeCheckReturnedFalse
+from dagster.core.engine.engine_inprocess import DagsterTypeCheckDidNotPass
 from dagster.core.engine.init import InitExecutorContext
 from dagster.core.errors import (
     DagsterConfigMappingFunctionError,
@@ -179,7 +179,7 @@ __all__ = [
     'DagsterInvariantViolationError',
     'DagsterResourceFunctionError',
     'DagsterTypeCheckError',
-    'DagsterTypeCheckReturnedFalse',
+    'DagsterTypeCheckDidNotPass',
     'DagsterUnknownResourceError',
     'DagsterUserCodeExecutionError',
     'DagsterStepOutputNotFoundError',

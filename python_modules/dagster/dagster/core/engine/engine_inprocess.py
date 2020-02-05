@@ -341,12 +341,12 @@ def _step_output_error_checked_user_event_sequence(step_context, user_event_sequ
                 )
 
 
-class DagsterTypeCheckReturnedFalse(DagsterError):
+class DagsterTypeCheckDidNotPass(DagsterError):
     '''Used explicitly as a testing utility in situations where raise_on_error is True and a user
     defined type check returns False'''
 
     def __init__(self, description=None, metadata_entries=None):
-        super(DagsterTypeCheckReturnedFalse, self).__init__(description)
+        super(DagsterTypeCheckDidNotPass, self).__init__(description)
         self.description = check.opt_str_param(description, 'description')
         self.metadata_entries = check.opt_list_param(
             metadata_entries, 'metadata_entries', of_type=EventMetadataEntry
@@ -411,7 +411,7 @@ def _type_checked_event_sequence_for_input(step_context, input_name, input_value
         )
 
         if not type_check.success:
-            raise DagsterTypeCheckReturnedFalse(
+            raise DagsterTypeCheckDidNotPass(
                 description='Type check failed for step input {input_name} of type {runtime_type}.'.format(
                     input_name=input_name, runtime_type=step_input.runtime_type.name,
                 ),
@@ -464,7 +464,7 @@ def _type_checked_step_output_event_sequence(step_context, output):
         )
 
         if not type_check.success:
-            raise DagsterTypeCheckReturnedFalse(
+            raise DagsterTypeCheckDidNotPass(
                 description='Type check failed for step output {output_name} of type {runtime_type}.'.format(
                     output_name=output.output_name, runtime_type=step_output.runtime_type.name,
                 ),

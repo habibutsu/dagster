@@ -4,7 +4,7 @@ import pytest
 
 from dagster import (
     DagsterInvariantViolationError,
-    DagsterTypeCheckReturnedFalse,
+    DagsterTypeCheckDidNotPass,
     Field,
     InputDefinition,
     Int,
@@ -125,7 +125,7 @@ def test_single_solid_type_checking_output_error():
     def return_string():
         return 'ksjdfkjd'
 
-    with pytest.raises(DagsterTypeCheckReturnedFalse):
+    with pytest.raises(DagsterTypeCheckDidNotPass):
         execute_solid(return_string)
 
 
@@ -248,7 +248,7 @@ def test_single_solid_with_bad_inputs():
     )
 
     assert not result.success
-    assert result.failure_data.error.cls_name == 'DagsterTypeCheckReturnedFalse'
+    assert result.failure_data.error.cls_name == 'DagsterTypeCheckDidNotPass'
     assert (
         'Type check failed for step input num_two of type Int' in result.failure_data.error.message
     )

@@ -1,8 +1,10 @@
+import re
+
 import pytest
 
 from dagster import (
     DagsterInvariantViolationError,
-    DagsterTypeCheckReturnedFalse,
+    DagsterTypeCheckDidNotPass,
     EventMetadataEntry,
     Failure,
     InputDefinition,
@@ -183,7 +185,7 @@ def test_input_types_fail_in_pipeline():
     def pipe():
         return take_string(return_one())
 
-    with pytest.raises(DagsterTypeCheckReturnedFalse):
+    with pytest.raises(DagsterTypeCheckDidNotPass):
         execute_pipeline(pipe)
 
     # now check events in no throw case
@@ -199,7 +201,7 @@ def test_input_types_fail_in_pipeline():
     assert type_check_data.description == 'Value "1" of python type "int" must be a string.'
 
     step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'DagsterTypeCheckReturnedFalse'
+    assert step_failure_event.event_specific_data.error.cls_name == 'DagsterTypeCheckDidNotPass'
 
 
 def test_output_types_fail_in_pipeline():
@@ -211,7 +213,7 @@ def test_output_types_fail_in_pipeline():
     def pipe():
         return return_int_fails()
 
-    with pytest.raises(DagsterTypeCheckReturnedFalse):
+    with pytest.raises(DagsterTypeCheckDidNotPass):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
@@ -228,7 +230,7 @@ def test_output_types_fail_in_pipeline():
     assert type_check_data.description == 'Value "1" of python type "int" must be a string.'
 
     step_failure_event = solid_result.compute_step_failure_event
-    assert step_failure_event.event_specific_data.error.cls_name == 'DagsterTypeCheckReturnedFalse'
+    assert step_failure_event.event_specific_data.error.cls_name == 'DagsterTypeCheckDidNotPass'
 
 
 # TODO add more step output use cases
@@ -247,7 +249,7 @@ ThrowsExceptionType = DagsterType(name='ThrowsExceptionType', type_check_fn=_alw
 
 
 def _return_bad_value(_value):
-    return 'kdjfkjd'
+    return 'foo'
 
 
 BadType = DagsterType(name='BadType', type_check_fn=_return_bad_value)
@@ -266,7 +268,15 @@ def test_input_type_returns_wrong_thing():
     def pipe():
         return take_bad_thing(return_one())
 
-    with pytest.raises(DagsterInvariantViolationError):
+    with pytest.raises(
+        DagsterInvariantViolationError,
+        match=re.escape("You have returned 'foo' of type <")
+        + "(class|type)"
+        + re.escape(
+            " 'str'> from the type check function of type \"BadType\". Return value must be instance of "
+            "TypeCheck or a bool."
+        ),
+    ):
         execute_pipeline(pipe)
 
     pipeline_result = execute_no_throw(pipe)
@@ -426,7 +436,7 @@ def test_type_check_returns_false(falsy_type_fn):
     def foo_pipeline():
         foo_solid()
 
-    with pytest.raises(DagsterTypeCheckReturnedFalse) as e:
+    with pytest.raises(DagsterTypeCheckDidNotPass) as e:
         execute_pipeline(foo_pipeline)
     if e.value.metadata_entries:
         assert e.value.metadata_entries[0].label == 'bar'
