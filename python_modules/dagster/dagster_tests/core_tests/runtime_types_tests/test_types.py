@@ -4,6 +4,7 @@ from dagster import (
     DagsterInvariantViolationError,
     DagsterTypeCheckReturnedFalse,
     EventMetadataEntry,
+    Failure,
     InputDefinition,
     Int,
     List,
@@ -402,3 +403,66 @@ def test_return_bool_type():
         return_always_pass_bool_type()
 
     assert execute_pipeline(bool_type_pipeline).success
+
+
+@pytest.mark.parametrize(
+    'falsy_type_fn',
+    [
+        lambda _: False,
+        lambda _: TypeCheck(
+            success=False, metadata_entries=[EventMetadataEntry.text('foo', 'bar', 'baz')]
+        ),
+    ],
+)
+def test_raise_on_error_true_type_check_returns_false(falsy_type_fn):
+
+    FalsyType = DagsterType(name='FalsyType', type_check_fn=falsy_type_fn)
+
+    @solid(output_defs=[OutputDefinition(FalsyType)])
+    def foo_solid(_):
+        return 1
+
+    @pipeline
+    def foo_pipeline():
+        foo_solid()
+
+    with pytest.raises(DagsterTypeCheckReturnedFalse) as e:
+        execute_pipeline(foo_pipeline)
+    if e.value.metadata_entries:
+        assert e.value.metadata_entries[0].label == 'bar'
+        assert e.value.metadata_entries[0].entry_data.text == 'foo'
+        assert e.value.metadata_entries[0].description == 'baz'
+
+
+@pytest.mark.parametrize('exception_to_throw', [TypeError, AlwaysFailsException, Failure])
+def test_raise_on_error_true_type_check_raises_exception(exception_to_throw):
+    def raise_exception_inner(_):
+        raise exception_to_throw('')
+
+    ThrowExceptionType = DagsterType(name='ThrowExceptionType', type_check_fn=raise_exception_inner)
+
+    @solid(output_defs=[OutputDefinition(ThrowExceptionType)])
+    def foo_solid(_):
+        return 1
+
+    @pipeline
+    def foo_pipeline():
+        foo_solid()
+
+    with pytest.raises(exception_to_throw):
+        execute_pipeline(foo_pipeline)
+
+
+@pytest.mark.parametrize('truthy_type_fn', [lambda _: True, lambda _: TypeCheck(success=True)])
+def test_raise_on_error_true_type_check_returns_true(truthy_type_fn):
+    TruthyExceptionType = DagsterType(name='TruthyExceptionType', type_check_fn=truthy_type_fn)
+
+    @solid(output_defs=[OutputDefinition(TruthyExceptionType)])
+    def foo_solid(_):
+        return 1
+
+    @pipeline
+    def foo_pipeline():
+        foo_solid()
+
+    assert execute_pipeline(foo_pipeline).success
